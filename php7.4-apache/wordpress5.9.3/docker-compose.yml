@@ -1,0 +1,65 @@
+version: "3.9"
+    
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+      - type: bind
+        source: ./root_db
+        target: /root
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    networks:
+      - wpsite
+  phpmyadmin:
+    depends_on:
+      - db
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: somewordpress
+      UPLOAD_LIMIT: 300M
+    networks:
+      - wpsite  
+  wordpress:
+    depends_on:
+      - db
+    # image: wordpress:5.9.3-php7.4-apache
+    build: ./php
+    volumes:
+      - type: bind
+        source: ./wordpress_data
+        target: /var/www/html
+    ports:
+      - "8000:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_TABLE_PREFIX: ah3yH_
+    networks:
+      - wpsite
+
+  mailhog:
+    image: mailhog/mailhog
+    ports: 
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+    networks:
+      - wpsite
+
+networks:
+  wpsite:
+volumes:
+  db_data: {}
+  wordpress_data: {}
