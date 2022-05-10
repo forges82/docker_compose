@@ -1,0 +1,66 @@
+version: "3.9"
+    
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+      - type: bind
+        source: ./root_db
+        target: /root
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: somedrupal
+      MYSQL_DATABASE: drupal
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    networks:
+      - drupalsite
+  phpmyadmin:
+    depends_on:
+      - db
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: somedrupal
+      UPLOAD_LIMIT: 300M
+    networks:
+      - drupalsite  
+  usjes:
+    depends_on:
+      - db
+    build: ./php
+    volumes:
+      - type: bind
+        source: ./drupal_data
+        target: /var/www/html
+    ports:
+      - "8000:80"
+    expose:
+      - "9000"
+    restart: always
+    environment:
+      DRUPAL_DB_HOST: db
+      DRUPAL_DB_USER: drupal
+      DRUPAL_DB_PASSWORD: drupal
+      DRUPAL_DB_NAME: drupal
+      XDEBUG_CONFIG: remote_host=host.docker.internal remote_port=9000 remote_enable=1
+    networks:
+      - drupalsite
+
+  mailhog:
+    image: mailhog/mailhog
+    ports: 
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+    networks:
+      - drupalsite
+
+networks:
+  drupalsite:
+volumes:
+  db_data: {}
+  drupal_data: {}
